@@ -6,15 +6,32 @@
     <title>Intel Terminal - Live Feed</title>
     <link rel="stylesheet" href="styles.css">
     <style>
-        /* Override for read-only mode - responsive full width */
+        /* Override for read-only mode - responsive full width with scrolling */
+        html, body {
+            height: auto !important;
+            min-height: 100vh !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+        }
+        .container {
+            height: auto !important;
+            min-height: 100vh !important;
+        }
         .main-content {
             display: block !important;
+            flex: none !important;
+            overflow: visible !important;
         }
         .feed-container {
             width: 100% !important;
             max-width: none;
             margin: 0 auto;
             padding: 0 20px;
+            overflow: visible !important;
+        }
+        .feed {
+            overflow: visible !important;
+            max-height: none !important;
         }
         /* Mobile: contained for readability */
         @media (max-width: 768px) {
