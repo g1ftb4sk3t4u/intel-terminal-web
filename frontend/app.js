@@ -1,6 +1,6 @@
 ﻿/**
- * Intel Terminal Frontend - Main Application
- * Features: Multi-theme, Category filtering, Feed management
+ * Intel Terminal Frontend - Read-Only Viewer
+ * Features: Multi-theme, Live article stream
  */
 
 // Dynamic API URL detection:
@@ -16,19 +16,12 @@ const WS_URL = WS_PROTOCOL + '//' + WS_HOST + '/ws';
 
 // Application State
 let articles = [];
-let sources = [];
 let categories = [];
 let activeCategories = new Set();
 let ws = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 10;
-let autoRefreshInterval = null;
-let autoRefreshSeconds = 0; // 0 = disabled
 let currentLayout = 'modern'; // 'modern' or 'irc'
-
-// Authentication State
-let isLoggedIn = false;
-let authToken = localStorage.getItem('intel-auth-token') || null;
 
 // Default categories with colors
 const DEFAULT_CATEGORIES = [
@@ -48,12 +41,9 @@ const DEFAULT_CATEGORIES = [
 document.addEventListener('DOMContentLoaded', () => {
     loadTheme();
     loadLayout();
-    loadAutoRefreshSetting();
     loadCategoriesFromBackend();
     connectWebSocket();
-    loadSources();
     loadArticles();
-    checkAuthStatus();
 });
 
 // ========================================
@@ -282,76 +272,6 @@ function toggleCategory(name) {
     renderArticles();
 }
 
-function populateCategoryDropdown() {
-    const select = document.getElementById('feedCategory');
-    if (!select) return;
-    
-    let html = '';
-    categories.forEach(cat => {
-        html += '<option value="' + escapeAttr(cat.name) + '">' + escapeHtml(cat.name) + '</option>';
-    });
-    select.innerHTML = html;
-}
-
-function showAddCategoryModal() {
-    document.getElementById('categoryName').value = '';
-    document.getElementById('categoryColor').value = '#00ffff';
-    document.getElementById('addCategoryModal').style.display = 'flex';
-}
-
-async function submitAddCategory() {
-    const name = document.getElementById('categoryName').value.trim();
-    const color = document.getElementById('categoryColor').value;
-    
-    if (!name) {
-        alert('Please enter a category name');
-        return;
-    }
-    
-    // Check for duplicate locally
-    if (categories.some(c => c.name.toLowerCase() === name.toLowerCase())) {
-        alert('Category already exists');
-        return;
-    }
-    
-    try {
-        // Add to backend
-        const response = await fetch(API_BASE + '/api/categories', {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                ...getAuthHeaders()
-            },
-            body: JSON.stringify({ name, color })
-        });
-        
-        if (response.ok) {
-            const result = await response.json();
-            categories.push({ name, color, id: result.id });
-            activeCategories.add(name);
-            saveActiveCategories();
-            renderCategories();
-            populateCategoryDropdown();
-            closeModal('addCategoryModal');
-        } else if (response.status === 401) {
-            alert('Authentication required. Please log in.');
-            showLoginModal();
-        } else {
-            alert('Failed to add category');
-        }
-    } catch (error) {
-        console.error('Error adding category:', error);
-        // Add locally anyway
-        categories.push({ name, color });
-        activeCategories.add(name);
-        saveCategories();
-        saveActiveCategories();
-        renderCategories();
-        populateCategoryDropdown();
-        closeModal('addCategoryModal');
-    }
-}
-
 // ========================================
 // WebSocket Connection
 // ========================================
@@ -404,187 +324,6 @@ function updateStatus(className, text) {
     if (el) {
         el.className = 'status-indicator ' + className;
         el.textContent = text;
-    }
-}
-
-// ========================================
-// Source/Feed Management
-// ========================================
-async function loadSources() {
-    try {
-        const response = await fetch(API_BASE + '/api/sources');
-        if (response.ok) {
-            sources = await response.json();
-            renderSources();
-        }
-    } catch (error) {
-        console.error('Failed to load sources:', error);
-    }
-}
-
-function renderSources() {
-    const container = document.getElementById('sourceList');
-    if (!container) return;
-    
-    if (sources.length === 0) {
-        container.innerHTML = '<div style="color: var(--text-dim); padding: 10px; font-size: 13px;">No feeds configured</div>';
-        return;
-    }
-    
-    let html = '';
-    sources.forEach(source => {
-        const color = source.color || '#55ff55';
-        html += '<div class="source-item">';
-        html += '<span class="source-name">';
-        html += '<span class="color-dot" style="background: ' + color + '"></span>';
-        html += escapeHtml(source.name);
-        html += '</span>';
-        if (isLoggedIn) {
-            html += '<button class="delete-btn" onclick="deleteSource(' + source.id + ')" title="Remove">✕</button>';
-        }
-        html += '</div>';
-    });
-    container.innerHTML = html;
-}
-
-function showAddFeedModal() {
-    document.getElementById('feedName').value = '';
-    document.getElementById('feedUrl').value = '';
-    document.getElementById('feedColor').value = '#00ff00';
-    populateCategoryDropdown();
-    document.getElementById('addFeedModal').style.display = 'flex';
-}
-
-async function submitAddFeed() {
-    const name = document.getElementById('feedName').value.trim();
-    const url = document.getElementById('feedUrl').value.trim();
-    const category = document.getElementById('feedCategory').value;
-    const color = document.getElementById('feedColor').value;
-    
-    if (!name || !url) {
-        alert('Please enter feed name and URL');
-        return;
-    }
-    
-    try {
-        const response = await fetch(API_BASE + '/api/sources', {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                ...getAuthHeaders()
-            },
-            body: JSON.stringify({
-                name: name,
-                url: url,
-                category: category,
-                color: color
-            })
-        });
-        
-        if (response.ok) {
-            closeModal('addFeedModal');
-            loadSources();
-            // Trigger a fetch for the new feed
-            refreshFeeds();
-        } else if (response.status === 401) {
-            alert('Authentication required. Please log in.');
-            showLoginModal();
-        } else {
-            const err = await response.json();
-            alert('Failed to add feed: ' + (err.detail || 'Unknown error'));
-        }
-    } catch (error) {
-        console.error('Error adding feed:', error);
-        alert('Error adding feed');
-    }
-}
-
-async function deleteSource(sourceId) {
-    if (!confirm('Remove this feed?')) return;
-    
-    try {
-        const response = await fetch(API_BASE + '/api/sources/' + sourceId, {
-            method: 'DELETE',
-            headers: getAuthHeaders()
-        });
-        
-        if (response.ok) {
-            loadSources();
-        } else if (response.status === 401) {
-            alert('Authentication required. Please log in.');
-            showLoginModal();
-        } else {
-            alert('Failed to remove feed');
-        }
-    } catch (error) {
-        console.error('Error removing feed:', error);
-    }
-}
-
-async function refreshFeeds() {
-    updateStatus('', '⟳ Fetching...');
-    try {
-        const response = await fetch(API_BASE + '/api/fetch', { 
-            method: 'POST',
-            headers: getAuthHeaders()
-        });
-        if (response.ok) {
-            console.log('RSS fetch triggered');
-            // Wait a bit for backend to process, then reload
-            setTimeout(async () => {
-                await loadArticles();
-                updateStatus('connected', '✓ Connected');
-            }, 3000);
-        } else if (response.status === 401) {
-            updateStatus('error', '✗ Auth Required');
-            alert('Authentication required. Please log in.');
-            showLoginModal();
-        } else {
-            updateStatus('error', '✗ Fetch Failed');
-        }
-    } catch (error) {
-        console.error('Failed to trigger RSS fetch:', error);
-        updateStatus('error', '✗ Fetch Failed');
-    }
-}
-
-// ========================================
-// Auto-Refresh Management
-// ========================================
-function loadAutoRefreshSetting() {
-    const saved = localStorage.getItem('intel-autorefresh');
-    if (saved) {
-        autoRefreshSeconds = parseInt(saved, 10);
-    }
-    const select = document.getElementById('refreshInterval');
-    if (select) {
-        select.value = autoRefreshSeconds.toString();
-    }
-    startAutoRefresh();
-}
-
-function changeRefreshInterval(seconds) {
-    autoRefreshSeconds = parseInt(seconds, 10);
-    localStorage.setItem('intel-autorefresh', autoRefreshSeconds.toString());
-    startAutoRefresh();
-}
-
-function startAutoRefresh() {
-    // Clear existing interval
-    if (autoRefreshInterval) {
-        clearInterval(autoRefreshInterval);
-        autoRefreshInterval = null;
-    }
-    
-    // Set new interval if enabled
-    if (autoRefreshSeconds > 0) {
-        console.log('Auto-refresh enabled: every ' + autoRefreshSeconds + ' seconds');
-        autoRefreshInterval = setInterval(() => {
-            console.log('Auto-refreshing articles...');
-            loadArticles();
-        }, autoRefreshSeconds * 1000);
-    } else {
-        console.log('Auto-refresh disabled');
     }
 }
 
@@ -720,106 +459,6 @@ document.addEventListener('keydown', (e) => {
         document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
     }
 });
-
-// ========================================
-// Authentication
-// ========================================
-async function checkAuthStatus() {
-    if (!authToken) {
-        isLoggedIn = false;
-        updateAuthUI();
-        return;
-    }
-    
-    try {
-        const response = await fetch(API_BASE + '/api/auth/check', {
-            headers: { 'Authorization': 'Bearer ' + authToken }
-        });
-        
-        if (response.ok) {
-            isLoggedIn = true;
-        } else {
-            isLoggedIn = false;
-            authToken = null;
-            localStorage.removeItem('intel-auth-token');
-        }
-    } catch (error) {
-        console.error('Auth check failed:', error);
-        isLoggedIn = false;
-    }
-    updateAuthUI();
-}
-
-function updateAuthUI() {
-    // Show/hide admin controls based on login state
-    const adminElements = document.querySelectorAll('.admin-only');
-    adminElements.forEach(el => {
-        el.style.display = isLoggedIn ? '' : 'none';
-    });
-    
-    // Update login/logout button
-    const loginBtn = document.getElementById('loginBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (loginBtn) loginBtn.style.display = isLoggedIn ? 'none' : '';
-    if (logoutBtn) logoutBtn.style.display = isLoggedIn ? '' : 'none';
-    
-    // Re-render sources to show/hide delete buttons
-    renderSources();
-}
-
-function showLoginModal() {
-    document.getElementById('loginUsername').value = '';
-    document.getElementById('loginPassword').value = '';
-    document.getElementById('loginError').textContent = '';
-    document.getElementById('loginModal').style.display = 'flex';
-}
-
-async function submitLogin() {
-    const username = document.getElementById('loginUsername').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    const errorEl = document.getElementById('loginError');
-    
-    if (!username || !password) {
-        errorEl.textContent = 'Please enter username and password';
-        return;
-    }
-    
-    try {
-        const response = await fetch(API_BASE + '/api/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            authToken = data.access_token;
-            localStorage.setItem('intel-auth-token', authToken);
-            isLoggedIn = true;
-            closeModal('loginModal');
-            updateAuthUI();
-        } else {
-            errorEl.textContent = 'Invalid credentials';
-        }
-    } catch (error) {
-        console.error('Login error:', error);
-        errorEl.textContent = 'Connection error';
-    }
-}
-
-function logout() {
-    authToken = null;
-    isLoggedIn = false;
-    localStorage.removeItem('intel-auth-token');
-    updateAuthUI();
-}
-
-function getAuthHeaders() {
-    if (authToken) {
-        return { 'Authorization': 'Bearer ' + authToken };
-    }
-    return {};
-}
 
 // ========================================
 // Utility Functions

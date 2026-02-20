@@ -3,28 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Intel Terminal</title>
+    <title>Intel Terminal - Live Feed</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Override for read-only mode - full width feed */
+        .main-content {
+            display: block !important;
+        }
+        .feed-container {
+            width: 100% !important;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+    </style>
 </head>
 <body class="theme-terminal">
     <div class="container">
         <div class="header">
             <div class="title-bar">
-                <h1>INTEL TERMINAL v1.0</h1>
+                <h1>INTEL TERMINAL</h1>
                 <div class="header-controls">
                     <label class="control-label">Layout:</label>
                     <select id="layoutSelect" class="theme-select" onchange="changeLayout(this.value)">
                         <option value="modern">Modern Cards</option>
                         <option value="irc">Classic IRC</option>
-                    </select>
-                    <label class="control-label">Refresh:</label>
-                    <select id="refreshInterval" class="theme-select" onchange="changeRefreshInterval(this.value)">
-                        <option value="0">Manual</option>
-                        <option value="5">5 sec</option>
-                        <option value="10">10 sec</option>
-                        <option value="30">30 sec</option>
-                        <option value="60">1 min</option>
-                        <option value="300">5 min</option>
                     </select>
                     <label class="control-label">Theme:</label>
                     <select id="themeSelect" class="theme-select" onchange="changeTheme(this.value)">
@@ -47,51 +49,6 @@
         </div>
 
         <div class="main-content">
-            <div class="sidebar">
-                <!-- Feed Sources Section -->
-                <div class="sidebar-section">
-                    <div class="sidebar-header">
-                        <span>SOURCES</span>
-                        <button class="add-btn admin-only" onclick="showAddFeedModal()" title="Add Feed">+</button>
-                    </div>
-                    <div id="sourceList" class="source-list">
-                        <!-- Sources populated by JS -->
-                    </div>
-                </div>
-
-                <!-- Category Filters Section -->
-                <div class="sidebar-section">
-                    <div class="sidebar-header">
-                        <span>CATEGORIES</span>
-                        <button class="add-btn admin-only" onclick="showAddCategoryModal()" title="Add Category">+</button>
-                    </div>
-                    <div id="categoryList" class="category-list">
-                        <!-- Categories populated by JS -->
-                    </div>
-                </div>
-
-                <div class="sidebar-spacer"></div>
-
-                <!-- Quick Commands -->
-                <div class="sidebar-section">
-                    <div class="sidebar-header">Quick Commands</div>
-                    <div class="commands">
-                        <button class="cmd-btn admin-only" onclick="refreshFeeds()">Refresh Feeds</button>
-                        <button class="cmd-btn" onclick="clearFeed()">Clear Feed</button>
-                        <button class="cmd-btn" onclick="exportArticles()">Export JSON</button>
-                    </div>
-                </div>
-
-                <!-- Admin Section -->
-                <div class="sidebar-section">
-                    <div class="sidebar-header">Admin</div>
-                    <div class="commands">
-                        <button id="loginBtn" class="cmd-btn" onclick="showLoginModal()">Login</button>
-                        <button id="logoutBtn" class="cmd-btn" onclick="logout()" style="display: none;">Logout</button>
-                    </div>
-                </div>
-            </div>
-
             <div class="feed-container">
                 <div id="feed" class="feed">
                     <div class="welcome-message">
@@ -103,73 +60,6 @@
                         </pre>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add Feed Modal -->
-    <div id="addFeedModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Add RSS Feed</h3>
-                <button class="close-btn" onclick="closeModal('addFeedModal')">×</button>
-            </div>
-            <div class="modal-body">
-                <label>Feed Name:</label>
-                <input type="text" id="feedName" placeholder="e.g., Tech News">
-                <label>RSS URL:</label>
-                <input type="text" id="feedUrl" placeholder="https://example.com/rss">
-                <label>Category:</label>
-                <select id="feedCategory">
-                    <!-- Categories populated by JS -->
-                </select>
-                <label>Color:</label>
-                <input type="color" id="feedColor" value="#00ff00">
-            </div>
-            <div class="modal-footer">
-                <button class="modal-btn cancel" onclick="closeModal('addFeedModal')">Cancel</button>
-                <button class="modal-btn confirm" onclick="submitAddFeed()">Add Feed</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add Category Modal -->
-    <div id="addCategoryModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Add Category</h3>
-                <button class="close-btn" onclick="closeModal('addCategoryModal')">×</button>
-            </div>
-            <div class="modal-body">
-                <label>Category Name:</label>
-                <input type="text" id="categoryName" placeholder="e.g., Science">
-                <label>Color:</label>
-                <input type="color" id="categoryColor" value="#00ffff">
-            </div>
-            <div class="modal-footer">
-                <button class="modal-btn cancel" onclick="closeModal('addCategoryModal')">Cancel</button>
-                <button class="modal-btn confirm" onclick="submitAddCategory()">Add Category</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Login Modal -->
-    <div id="loginModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Admin Login</h3>
-                <button class="close-btn" onclick="closeModal('loginModal')">×</button>
-            </div>
-            <div class="modal-body">
-                <label>Username:</label>
-                <input type="text" id="loginUsername" placeholder="admin">
-                <label>Password:</label>
-                <input type="password" id="loginPassword" placeholder="Password">
-                <div id="loginError" style="color: #ff3333; margin-top: 10px;"></div>
-            </div>
-            <div class="modal-footer">
-                <button class="modal-btn cancel" onclick="closeModal('loginModal')">Cancel</button>
-                <button class="modal-btn confirm" onclick="submitLogin()">Login</button>
             </div>
         </div>
     </div>
