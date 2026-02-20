@@ -6,37 +6,60 @@
     <title>Intel Terminal - Live Feed</title>
     <link rel="stylesheet" href="styles.css">
     <style>
-        /* Override for read-only mode - responsive full width with scrolling */
-        html, body {
-            height: auto !important;
-            min-height: 100vh !important;
-            overflow-y: auto !important;
-            overflow-x: hidden !important;
+        /* Override for read-only mode - force scrolling */
+        html {
+            height: 100% !important;
+            overflow: hidden !important;
+        }
+        body {
+            height: 100% !important;
+            overflow: hidden !important;
+            margin: 0 !important;
         }
         .container {
-            height: auto !important;
-            min-height: 100vh !important;
+            height: 100vh !important;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
+        }
+        .header {
+            flex-shrink: 0 !important;
         }
         .main-content {
             display: block !important;
-            flex: none !important;
-            overflow: visible !important;
+            flex: 1 !important;
+            overflow-y: scroll !important;
+            overflow-x: hidden !important;
+            -webkit-overflow-scrolling: touch;
         }
         .feed-container {
             width: 100% !important;
             max-width: none;
             margin: 0 auto;
-            padding: 0 20px;
-            overflow: visible !important;
+            padding: 0 20px 50px 20px;
         }
         .feed {
             overflow: visible !important;
             max-height: none !important;
         }
-        /* Mobile: contained for readability */
+        /* Visible scrollbar */
+        .main-content::-webkit-scrollbar {
+            width: 12px;
+        }
+        .main-content::-webkit-scrollbar-track {
+            background: #111;
+        }
+        .main-content::-webkit-scrollbar-thumb {
+            background: #00ff00;
+            border-radius: 6px;
+        }
+        .main-content::-webkit-scrollbar-thumb:hover {
+            background: #00cc00;
+        }
+        /* Mobile */
         @media (max-width: 768px) {
             .feed-container {
-                padding: 0 10px;
+                padding: 0 10px 50px 10px;
             }
             .header-controls {
                 flex-wrap: wrap;
