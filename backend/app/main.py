@@ -1,5 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -10,6 +11,9 @@ from app.websocket import router as websocket_router, broadcast_status
 from app.rss_engine import fetch_and_process_feeds
 from app.config import RSS_CHECK_INTERVAL, DEFAULT_SOURCES
 import os
+
+# Cleanup settings
+ARTICLE_RETENTION_DAYS = 2  # Delete articles older than this
 
 # Logging
 logging.basicConfig(
@@ -90,6 +94,21 @@ async def scheduled_fetch():
     finally:
         db.close()
 
+async def cleanup_old_articles():
+    """Remove articles older than ARTICLE_RETENTION_DAYS"""
+    db = SessionLocal()
+    try:
+        cutoff = datetime.utcnow() - timedelta(days=ARTICLE_RETENTION_DAYS)
+        deleted = db.query(Article).filter(Article.published < cutoff).delete()
+        db.commit()
+        if deleted > 0:
+            logger.info(f"Cleaned up {deleted} articles older than {ARTICLE_RETENTION_DAYS} days")
+    except Exception as e:
+        logger.error(f"Cleanup error: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown events"""
@@ -105,8 +124,15 @@ async def lifespan(app: FastAPI):
         id="rss_fetch",
         name="RSS Feed Fetch"
     )
+    scheduler.add_job(
+        cleanup_old_articles,
+        "interval",
+        hours=1,
+        id="cleanup",
+        name="Cleanup Old Articles"
+    )
     scheduler.start()
-    logger.info(f"Scheduler started (interval: {RSS_CHECK_INTERVAL} minutes)")
+    logger.info(f"Scheduler started (fetch: {RSS_CHECK_INTERVAL} min, cleanup: hourly, retention: {ARTICLE_RETENTION_DAYS} days)")
     
     yield
     
