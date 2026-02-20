@@ -1,15 +1,14 @@
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.database import init_db, SessionLocal
-from app.models import Category, Source, Article, Admin, Admin
+from app.models import Category, Source, Article
 from app.websocket import router as websocket_router, broadcast_status
 from app.rss_engine import fetch_and_process_feeds
 from app.config import RSS_CHECK_INTERVAL, DEFAULT_SOURCES
-from app.auth import verify_token, create_access_token, hash_password, verify_password
 import os
 
 # Logging
@@ -91,24 +90,6 @@ async def scheduled_fetch():
     finally:
         db.close()
 
-async def initialize_admin():
-    """Create default admin user if none exists"""
-    db = SessionLocal()
-    try:
-        existing = db.query(Admin).first()
-        if not existing:
-            # Default admin credentials - CHANGE THESE IN PRODUCTION
-            default_password = os.getenv("ADMIN_PASSWORD", "changeme123")
-            admin = Admin(
-                username="admin",
-                hashed_password=hash_password(default_password)
-            )
-            db.add(admin)
-            db.commit()
-            logger.info("Created default admin user (username: admin)")
-    finally:
-        db.close()
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown events"""
@@ -116,7 +97,6 @@ async def lifespan(app: FastAPI):
     logger.info("Intel Terminal starting...")
     init_db()
     await initialize_default_data()
-    await initialize_admin()
     
     scheduler.add_job(
         scheduled_fetch,
@@ -152,52 +132,6 @@ app.add_middleware(
 
 # WebSocket router
 app.include_router(websocket_router)
-
-# ========================================
-# Authentication Endpoints
-# ========================================
-@app.post("/api/login")
-def login(data: dict):
-    """Admin login endpoint"""
-    db = SessionLocal()
-    try:
-        username = data.get("username", "")
-        password = data.get("password", "")
-        
-        admin = db.query(Admin).filter(Admin.username == username).first()
-        if not admin or not verify_password(password, admin.hashed_password):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid credentials"
-            )
-        
-        token = create_access_token(data={"sub": str(admin.id)})
-        return {"access_token": token, "token_type": "bearer"}
-    finally:
-        db.close()
-
-@app.get("/api/auth/check")
-def check_auth(user_id: str = Depends(verify_token)):
-    """Check if current token is valid"""
-    return {"authenticated": True, "user_id": user_id}
-
-@app.post("/api/admin/change-password")
-def change_password(data: dict, user_id: str = Depends(verify_token)):
-    """Change admin password"""
-    db = SessionLocal()
-    try:
-        new_password = data.get("new_password", "")
-        if len(new_password) < 8:
-            raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
-        
-        admin = db.query(Admin).filter(Admin.id == int(user_id)).first()
-        if admin:
-            admin.hashed_password = hash_password(new_password)
-            db.commit()
-            return {"status": "password_changed"}
-        raise HTTPException(status_code=404, detail="Admin not found")
-    finally:
-        db.close()
 
 # Static files path - check multiple locations for different deployment scenarios
 # Local dev: ../frontend, Docker/Railway: /app/static or ./static
@@ -240,47 +174,6 @@ def get_sources():
     finally:
         db.close()
 
-@app.post("/api/sources")
-def add_source(data: dict, user_id: str = Depends(verify_token)):
-    """Add a new RSS source (requires authentication)"""
-    db = SessionLocal()
-    try:
-        # Look up category by name to get ID
-        category_name = data.get("category", "Technology")
-        category = db.query(Category).filter(Category.name == category_name).first()
-        category_id = category.id if category else None
-        
-        source = Source(
-            name=data.get("name"),
-            rss_url=data.get("url"),
-            category_id=category_id,
-            color=data.get("color", "#55ff55")
-        )
-        db.add(source)
-        db.commit()
-        return {"status": "created", "id": source.id}
-    except Exception as e:
-        db.rollback()
-        return {"status": "error", "detail": str(e)}
-    finally:
-        db.close()
-
-@app.delete("/api/sources/{source_id}")
-def delete_source(source_id: int, user_id: str = Depends(verify_token)):
-    """Delete a source (requires authentication)"""
-    db = SessionLocal()
-    try:
-        source = db.query(Source).filter(Source.id == source_id).first()
-        if source:
-            db.delete(source)
-            db.commit()
-        return {"status": "deleted"}
-    except Exception as e:
-        db.rollback()
-        return {"status": "error", "detail": str(e)}
-    finally:
-        db.close()
-
 @app.get("/api/categories")
 def get_categories():
     """Get all categories"""
@@ -299,43 +192,9 @@ def get_categories():
     finally:
         db.close()
 
-@app.post("/api/categories")
-def add_category(data: dict, user_id: str = Depends(verify_token)):
-    """Add a new category (requires authentication)"""
-    db = SessionLocal()
-    try:
-        category = Category(
-            name=data.get("name"),
-            color=data.get("color", "#00ffff")
-        )
-        db.add(category)
-        db.commit()
-        return {"status": "created", "id": category.id, "name": category.name}
-    except Exception as e:
-        db.rollback()
-        return {"status": "error", "detail": str(e)}
-    finally:
-        db.close()
-
-@app.delete("/api/categories/{category_id}")
-def delete_category(category_id: int, user_id: str = Depends(verify_token)):
-    """Delete a category (requires authentication)"""
-    db = SessionLocal()
-    try:
-        cat = db.query(Category).filter(Category.id == category_id).first()
-        if cat:
-            db.delete(cat)
-            db.commit()
-        return {"status": "deleted"}
-    except Exception as e:
-        db.rollback()
-        return {"status": "error", "detail": str(e)}
-    finally:
-        db.close()
-
 @app.post("/api/fetch")
-async def fetch_feeds(user_id: str = Depends(verify_token)):
-    """Manually trigger RSS feed fetch (requires authentication)"""
+async def fetch_feeds():
+    """Manually trigger RSS feed fetch"""
     db = SessionLocal()
     try:
         await fetch_and_process_feeds(db)

@@ -22,6 +22,8 @@ let ws = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 10;
 let currentLayout = 'modern'; // 'modern' or 'irc'
+let autoRefreshInterval = null;
+let autoRefreshSeconds = 0; // 0 = disabled
 
 // Default categories with colors
 const DEFAULT_CATEGORIES = [
@@ -41,6 +43,7 @@ const DEFAULT_CATEGORIES = [
 document.addEventListener('DOMContentLoaded', () => {
     loadTheme();
     loadLayout();
+    loadAutoRefreshSetting();
     loadCategoriesFromBackend();
     connectWebSocket();
     loadArticles();
@@ -324,6 +327,60 @@ function updateStatus(className, text) {
     if (el) {
         el.className = 'status-indicator ' + className;
         el.textContent = text;
+    }
+}
+
+// ========================================
+// Auto-Refresh Management
+// ========================================
+function loadAutoRefreshSetting() {
+    const saved = localStorage.getItem('intel-autorefresh');
+    if (saved) {
+        autoRefreshSeconds = parseInt(saved, 10);
+    }
+    const select = document.getElementById('refreshInterval');
+    if (select) {
+        select.value = autoRefreshSeconds.toString();
+    }
+    startAutoRefresh();
+}
+
+function changeRefreshInterval(seconds) {
+    autoRefreshSeconds = parseInt(seconds, 10);
+    localStorage.setItem('intel-autorefresh', autoRefreshSeconds.toString());
+    startAutoRefresh();
+}
+
+function startAutoRefresh() {
+    // Clear existing interval
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+    }
+    
+    // Set new interval if enabled
+    if (autoRefreshSeconds > 0) {
+        console.log('Auto-refresh enabled: every ' + autoRefreshSeconds + ' seconds');
+        autoRefreshInterval = setInterval(() => {
+            console.log('Auto-refreshing articles...');
+            loadArticles();
+        }, autoRefreshSeconds * 1000);
+    } else {
+        console.log('Auto-refresh disabled');
+    }
+}
+
+async function manualRefresh() {
+    updateStatus('', '⟳ Refreshing...');
+    try {
+        // First trigger backend fetch
+        await fetch(API_BASE + '/api/fetch', { method: 'POST' });
+        // Then reload articles
+        await loadArticles();
+        updateStatus('connected', '✓ Connected');
+    } catch (error) {
+        console.error('Manual refresh failed:', error);
+        updateStatus('error', '✗ Refresh Failed');
     }
 }
 

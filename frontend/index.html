@@ -23,6 +23,16 @@
             <div class="title-bar">
                 <h1>INTEL TERMINAL</h1>
                 <div class="header-controls">
+                    <button class="cmd-btn" onclick="manualRefresh()" style="padding: 4px 12px; margin-right: 10px;">⟳ Refresh</button>
+                    <label class="control-label">Auto:</label>
+                    <select id="refreshInterval" class="theme-select" onchange="changeRefreshInterval(this.value)">
+                        <option value="0">Off</option>
+                        <option value="5">5 sec</option>
+                        <option value="30">30 sec</option>
+                        <option value="60">60 sec</option>
+                        <option value="1800">30 min</option>
+                        <option value="3600">60 min</option>
+                    </select>
                     <label class="control-label">Layout:</label>
                     <select id="layoutSelect" class="theme-select" onchange="changeLayout(this.value)">
                         <option value="modern">Modern Cards</option>
