@@ -229,5 +229,167 @@ DEFAULT_SOURCES = [
         "color": "#ff0000",
         "category": "Cybersecurity"
     },
+    
+    # ===== NETWORKING/INFRASTRUCTURE =====
+    {
+        "name": "MikroTik Blog",
+        "url": "https://blog.mikrotik.com/feed/",
+        "color": "#00aaff",
+        "category": "Technology"
+    },
+    {
+        "name": "Cisco Talos",
+        "url": "https://blog.talosintelligence.com/feeds/posts/default",
+        "color": "#ff3333",
+        "category": "Cybersecurity"
+    },
+    {
+        "name": "Cloudflare Blog",
+        "url": "https://blog.cloudflare.com/rss/",
+        "color": "#ffff00",
+        "category": "Technology"
+    },
+    
+    # ===== SCIENCE (Blue) =====
+    {
+        "name": "NASA Breaking News",
+        "url": "https://www.nasa.gov/news-release/feed/",
+        "color": "#00aaff",
+        "category": "Science"
+    },
+    {
+        "name": "Nature News",
+        "url": "https://www.nature.com/nature.rss",
+        "color": "#00aaff",
+        "category": "Science"
+    },
+    {
+        "name": "Scientific American",
+        "url": "https://www.scientificamerican.com/feed/",
+        "color": "#00aaff",
+        "category": "Science"
+    },
+    {
+        "name": "Phys.org",
+        "url": "https://phys.org/rss-feed/",
+        "color": "#00aaff",
+        "category": "Science"
+    },
+    {
+        "name": "Space.com",
+        "url": "https://www.space.com/feeds/all",
+        "color": "#00aaff",
+        "category": "Science"
+    },
+    
+    # ===== CRYPTO/BLOCKCHAIN =====
+    {
+        "name": "CoinDesk",
+        "url": "https://www.coindesk.com/arc/outboundfeeds/rss/",
+        "color": "#ffd700",
+        "category": "Technology"
+    },
+    {
+        "name": "Decrypt",
+        "url": "https://decrypt.co/feed",
+        "color": "#ffd700",
+        "category": "Technology"
+    },
+    
+    # ===== THREAT INTEL/APT =====
+    {
+        "name": "Mandiant Blog",
+        "url": "https://www.mandiant.com/resources/blog/rss.xml",
+        "color": "#ff3333",
+        "category": "Cybersecurity"
+    },
+    {
+        "name": "Palo Alto Unit 42",
+        "url": "https://unit42.paloaltonetworks.com/feed/",
+        "color": "#ff3333",
+        "category": "Cybersecurity"
+    },
+    {
+        "name": "CrowdStrike Blog",
+        "url": "https://www.crowdstrike.com/blog/feed/",
+        "color": "#ff3333",
+        "category": "Cybersecurity"
+    },
+    {
+        "name": "SentinelOne Labs",
+        "url": "https://www.sentinelone.com/labs/feed/",
+        "color": "#ff3333",
+        "category": "Cybersecurity"
+    },
+    
+    # ===== OBSCURE/NICHE =====
+    {
+        "name": "Schneier on Security",
+        "url": "https://www.schneier.com/feed/",
+        "color": "#ff3333",
+        "category": "Cybersecurity"
+    },
+    {
+        "name": "Risky Business News",
+        "url": "https://risky.biz/feeds/risky-business/",
+        "color": "#ff3333",
+        "category": "Cybersecurity"
+    },
+    {
+        "name": "Daniel Miessler",
+        "url": "https://danielmiessler.com/feed/",
+        "color": "#dd00ff",
+        "category": "AI/ML"
+    },
+    {
+        "name": "Troy Hunt",
+        "url": "https://www.troyhunt.com/rss/",
+        "color": "#ff3333",
+        "category": "Cybersecurity"
+    },
+    {
+        "name": "WIRED Threat Level",
+        "url": "https://www.wired.com/feed/category/security/latest/rss",
+        "color": "#ff3333",
+        "category": "Cybersecurity"
+    },
+    {
+        "name": "ZeroDay Initiative",
+        "url": "https://www.zerodayinitiative.com/blog/feed/",
+        "color": "#ff0000",
+        "category": "Cybersecurity"
+    },
+    {
+        "name": "Google Project Zero",
+        "url": "https://googleprojectzero.blogspot.com/feeds/posts/default",
+        "color": "#ff0000",
+        "category": "Cybersecurity"
+    },
+    
+    # ===== INDEPENDENT/ALT NEWS =====
+    {
+        "name": "Hacks/Hackers",
+        "url": "https://www.hackshackers.com/feed/",
+        "color": "#ff1493",
+        "category": "Investigation"
+    },
+    {
+        "name": "Rest of World",
+        "url": "https://restofworld.org/feed/",
+        "color": "#00ffff",
+        "category": "Geopolitical"
+    },
+    {
+        "name": "Lawfare",
+        "url": "https://www.lawfareblog.com/rss.xml",
+        "color": "#00ffff",
+        "category": "Geopolitical"
+    },
+    {
+        "name": "Foreign Policy",
+        "url": "https://foreignpolicy.com/feed/",
+        "color": "#00ffff",
+        "category": "Geopolitical"
+    },
 ]
 
